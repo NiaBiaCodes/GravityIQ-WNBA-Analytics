@@ -1,0 +1,941 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GravityIQ — WNBA Game Overview</title>
+<style>
+  :root {
+    --bg-primary: #0a0e1a;
+    --bg-card: #131829;
+    --bg-card-hover: #1a2035;
+    --border: #1e2740;
+    --text-primary: #e8eaf0;
+    --text-secondary: #8892a8;
+    --text-muted: #555f78;
+    --purple: #9b6dff;
+    --purple-dim: rgba(155,109,255,0.15);
+    --purple-glow: rgba(155,109,255,0.3);
+    --orange: #ff8c42;
+    --orange-dim: rgba(255,140,66,0.15);
+    --green: #34d399;
+    --green-dim: rgba(52,211,153,0.15);
+    --red: #f87171;
+    --red-dim: rgba(248,113,113,0.15);
+    --cyan: #22d3ee;
+    --cyan-dim: rgba(34,211,238,0.15);
+    --yellow: #fbbf24;
+    --yellow-dim: rgba(251,191,36,0.15);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--bg-primary); color:var(--text-primary); font-family:'Inter','Segoe UI',system-ui,-apple-system,sans-serif; min-height:100vh; }
+
+  .header { display:flex; align-items:center; justify-content:space-between; padding:16px 28px; border-bottom:1px solid var(--border); background:linear-gradient(180deg,#0f1424,var(--bg-primary)); }
+  .logo { display:flex; align-items:center; gap:12px; }
+  .logo-icon { width:36px; height:36px; border-radius:10px; background:linear-gradient(135deg,var(--purple),#6c3bdb); display:flex; align-items:center; justify-content:center; font-weight:800; font-size:15px; color:#fff; letter-spacing:-0.5px; }
+  .logo-text { font-size:20px; font-weight:700; letter-spacing:-0.5px; }
+  .logo-text span { color:var(--purple); }
+  .logo-sub { font-size:11px; color:var(--text-muted); letter-spacing:1.5px; text-transform:uppercase; margin-top:1px; }
+
+  .controls { display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+  .control-group { display:flex; flex-direction:column; gap:3px; }
+  .control-label { font-size:10px; text-transform:uppercase; letter-spacing:1.2px; color:var(--text-muted); font-weight:600; }
+  select, input[type=number] { background:var(--bg-card); border:1px solid var(--border); color:var(--text-primary); padding:7px 12px; border-radius:8px; font-size:13px; font-family:inherit; outline:none; cursor:pointer; min-width:140px; }
+  select:hover, input:hover { border-color:var(--purple); }
+  select:focus, input:focus { border-color:var(--purple); box-shadow:0 0 0 2px var(--purple-dim); }
+
+  .matchup-badge { background:var(--bg-card); border:1px solid var(--border); border-radius:10px; padding:8px 18px; display:flex; align-items:center; gap:10px; font-size:14px; font-weight:600; }
+  .matchup-badge .vs { color:var(--text-muted); font-size:11px; font-weight:400; }
+  .team-tag { padding:2px 8px; border-radius:5px; font-size:12px; font-weight:700; letter-spacing:0.5px; }
+  .team-tag.home { background:var(--purple-dim); color:var(--purple); }
+  .team-tag.away { background:var(--orange-dim); color:var(--orange); }
+
+  .dashboard { padding:20px 28px; display:flex; flex-direction:column; gap:20px; max-width:1440px; margin:0 auto; }
+
+  .metrics-row { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; }
+  .metric-card { background:var(--bg-card); border:1px solid var(--border); border-radius:14px; padding:20px 22px; position:relative; overflow:hidden; transition:border-color 0.2s; }
+  .metric-card:hover { border-color:var(--purple); }
+  .metric-card .accent-bar { position:absolute; top:0; left:0; right:0; height:3px; }
+  .metric-label { font-size:11px; text-transform:uppercase; letter-spacing:1.3px; color:var(--text-muted); font-weight:600; margin-bottom:8px; }
+  .metric-value { font-size:36px; font-weight:800; letter-spacing:-1.5px; line-height:1.1; }
+  .metric-sub { font-size:12px; color:var(--text-secondary); margin-top:6px; }
+  .metric-card.purple .accent-bar { background:linear-gradient(90deg,var(--purple),transparent); }
+  .metric-card.purple .metric-value { color:var(--purple); }
+  .metric-card.cyan .accent-bar { background:linear-gradient(90deg,var(--cyan),transparent); }
+  .metric-card.cyan .metric-value { color:var(--cyan); }
+  .metric-card.orange .accent-bar { background:linear-gradient(90deg,var(--orange),transparent); }
+  .metric-card.orange .metric-value { color:var(--orange); }
+  .metric-card.green .accent-bar { background:linear-gradient(90deg,var(--green),transparent); }
+  .metric-card.green .metric-value { color:var(--green); }
+
+  .main-row { display:grid; grid-template-columns:1fr 380px; gap:20px; }
+  .panel { background:var(--bg-card); border:1px solid var(--border); border-radius:14px; padding:22px; }
+  .panel-title { font-size:14px; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:var(--text-secondary); margin-bottom:16px; display:flex; align-items:center; gap:8px; }
+  .panel-title .dot { width:8px; height:8px; border-radius:50%; }
+
+  .leaderboard-controls { display:flex; align-items:center; gap:12px; margin-bottom:14px; }
+  .leaderboard-controls label { font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; font-weight:600; }
+  .leaderboard-controls input { width:70px; padding:5px 8px; font-size:12px; }
+  .bar-row { display:flex; align-items:center; gap:10px; padding:6px 0; cursor:pointer; border-radius:8px; transition:background 0.15s; }
+  .bar-row:hover { background:var(--bg-card-hover); }
+  .bar-row.selected { background:var(--purple-dim); }
+  .bar-player { width:160px; text-align:right; font-size:13px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex-shrink:0; }
+  .bar-team { width:36px; font-size:10px; color:var(--text-muted); font-weight:700; letter-spacing:0.5px; text-align:right; flex-shrink:0; }
+  .bar-container { flex:1; height:24px; position:relative; display:flex; align-items:center; }
+  .bar-zero { position:absolute; left:50%; top:-2px; bottom:-2px; width:1px; background:var(--text-muted); opacity:0.3; }
+  .bar-fill { height:20px; border-radius:4px; position:absolute; top:2px; transition:width 0.4s ease; min-width:2px; }
+  .bar-fill.positive { background:linear-gradient(90deg,var(--purple),rgba(155,109,255,0.6)); left:50%; }
+  .bar-fill.negative { background:linear-gradient(270deg,var(--red),rgba(248,113,113,0.6)); right:50%; }
+  .bar-val { width:52px; font-size:12px; font-weight:700; font-variant-numeric:tabular-nums; flex-shrink:0; }
+  .bar-val.pos { color:var(--purple); }
+  .bar-val.neg { color:var(--red); }
+  .bar-frames { width:50px; font-size:10px; color:var(--text-muted); text-align:right; flex-shrink:0; }
+
+  .team-compare { display:flex; flex-direction:column; gap:14px; }
+  .team-block { background:rgba(255,255,255,0.02); border:1px solid var(--border); border-radius:10px; padding:16px; }
+  .team-block-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+  .team-block-name { font-size:15px; font-weight:700; }
+  .team-block-tag { font-size:11px; font-weight:700; padding:3px 8px; border-radius:5px; letter-spacing:0.5px; }
+  .stat-row { display:flex; justify-content:space-between; align-items:center; padding:5px 0; border-bottom:1px solid rgba(255,255,255,0.03); }
+  .stat-row:last-child { border-bottom:none; }
+  .stat-label { font-size:12px; color:var(--text-secondary); }
+  .stat-value { font-size:14px; font-weight:700; font-variant-numeric:tabular-nums; }
+
+  /* ===== SITUATION BREAKDOWN ===== */
+  .situation-row { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+  .situation-court { display:grid; grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr; gap:2px; border-radius:14px; overflow:hidden; position:relative; min-height:320px; }
+  .situation-court::before { content:''; position:absolute; top:50%; left:0; right:0; height:1px; background:rgba(255,255,255,0.06); z-index:1; }
+  .situation-court::after { content:''; position:absolute; left:50%; top:0; bottom:0; width:1px; background:rgba(255,255,255,0.06); z-index:1; }
+  .sit-card { background:var(--bg-card); padding:20px; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; position:relative; transition:background 0.2s; }
+  .sit-card:hover { background:var(--bg-card-hover); }
+  .sit-card .sit-zone-label { font-size:10px; text-transform:uppercase; letter-spacing:1.5px; color:var(--text-muted); font-weight:700; margin-bottom:10px; }
+  .sit-card .sit-grav-value { font-size:32px; font-weight:800; letter-spacing:-1px; line-height:1.1; }
+  .sit-card .sit-grav-value.pos { color:var(--purple); }
+  .sit-card .sit-grav-value.neg { color:var(--red); }
+  .sit-card .sit-baseline { font-size:11px; color:var(--text-muted); margin-top:6px; }
+  .sit-card .sit-baseline strong { color:var(--text-secondary); }
+  .sit-card .sit-gap { font-size:13px; font-weight:700; margin-top:4px; padding:2px 8px; border-radius:5px; display:inline-block; }
+  .sit-card .sit-gap.up { background:var(--green-dim); color:var(--green); }
+  .sit-card .sit-gap.down { background:var(--red-dim); color:var(--red); }
+  .sit-card .sit-gap.neutral { background:rgba(255,255,255,0.05); color:var(--text-muted); }
+  .sit-card .sit-frames { font-size:10px; color:var(--text-muted); margin-top:8px; display:flex; align-items:center; gap:4px; }
+  .sit-card .sit-frames .frame-bar-bg { width:60px; height:4px; background:rgba(255,255,255,0.06); border-radius:2px; overflow:hidden; }
+  .sit-card .sit-frames .frame-bar-fill { height:100%; border-radius:2px; background:var(--purple); }
+  .court-center-label { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); z-index:2; background:var(--bg-primary); border:1px solid var(--border); border-radius:8px; padding:4px 10px; font-size:9px; text-transform:uppercase; letter-spacing:1.5px; color:var(--text-muted); font-weight:700; white-space:nowrap; }
+
+  /* Situation comparison bars */
+  .sit-compare-panel { display:flex; flex-direction:column; gap:16px; }
+  .sit-compare-row { display:flex; flex-direction:column; gap:6px; }
+  .sit-compare-header { display:flex; justify-content:space-between; align-items:center; }
+  .sit-compare-label { font-size:12px; font-weight:600; color:var(--text-secondary); }
+  .sit-compare-values { display:flex; gap:12px; font-size:11px; font-variant-numeric:tabular-nums; }
+  .sit-compare-values .game-val { color:var(--purple); font-weight:700; }
+  .sit-compare-values .base-val { color:var(--cyan); font-weight:700; }
+  .sit-dual-bar { height:28px; background:rgba(255,255,255,0.03); border-radius:6px; position:relative; overflow:hidden; }
+  .sit-dual-bar .bar-game { position:absolute; top:2px; height:11px; border-radius:3px; background:var(--purple); transition:width 0.4s, left 0.4s, right 0.4s; }
+  .sit-dual-bar .bar-base { position:absolute; bottom:2px; height:11px; border-radius:3px; background:var(--cyan); opacity:0.6; transition:width 0.4s, left 0.4s, right 0.4s; }
+  .sit-dual-bar .zero-line { position:absolute; left:50%; top:0; bottom:0; width:1px; background:var(--text-muted); opacity:0.2; }
+  .sit-frame-dist { margin-top:8px; }
+  .sit-frame-dist-title { font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; font-weight:600; margin-bottom:8px; }
+  .frame-dist-row { display:flex; align-items:center; gap:8px; margin-bottom:5px; }
+  .frame-dist-label { width:110px; font-size:11px; color:var(--text-secondary); text-align:right; flex-shrink:0; }
+  .frame-dist-bar-bg { flex:1; height:16px; background:rgba(255,255,255,0.03); border-radius:4px; overflow:hidden; position:relative; }
+  .frame-dist-bar-fill { height:100%; border-radius:4px; transition:width 0.4s; }
+  .frame-dist-pct { width:40px; font-size:11px; color:var(--text-muted); font-weight:600; font-variant-numeric:tabular-nums; }
+  .frame-dist-count { width:45px; font-size:10px; color:var(--text-muted); text-align:right; font-variant-numeric:tabular-nums; }
+
+  .legend-row { display:flex; gap:16px; margin-bottom:14px; }
+  .legend-item { display:flex; align-items:center; gap:5px; font-size:11px; color:var(--text-muted); }
+  .legend-swatch { width:12px; height:4px; border-radius:2px; }
+
+  /* Insight panel */
+  .insight-panel { background:var(--bg-card); border:1px solid var(--border); border-radius:14px; padding:22px; }
+  .insight-section { margin-bottom:14px; }
+  .insight-tag { display:inline-block; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:1.2px; padding:3px 8px; border-radius:5px; margin-bottom:6px; }
+  .insight-tag.observed { background:var(--green-dim); color:var(--green); }
+  .insight-tag.hypothesis { background:var(--orange-dim); color:var(--orange); }
+  .insight-tag.limitation { background:var(--red-dim); color:var(--red); }
+  .insight-text { font-size:13px; color:var(--text-secondary); line-height:1.6; }
+  .insight-text strong { color:var(--text-primary); }
+
+  /* Gravity Detective */
+  .detective-panel { background:linear-gradient(145deg,rgba(22,25,48,0.98),rgba(19,24,41,0.98)); border:1px solid rgba(155,109,255,0.38); border-radius:16px; padding:24px; box-shadow:0 12px 40px rgba(0,0,0,0.18); }
+  .detective-header { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; margin-bottom:18px; }
+  .detective-heading { display:flex; flex-direction:column; gap:6px; }
+  .detective-kicker { color:var(--purple); font-size:10px; font-weight:800; letter-spacing:1.7px; text-transform:uppercase; }
+  .detective-title { font-size:20px; font-weight:800; letter-spacing:-0.4px; }
+  .detective-subtitle { color:var(--text-secondary); font-size:12px; line-height:1.5; }
+  .detective-controls { display:flex; align-items:center; gap:10px; flex-wrap:wrap; justify-content:flex-end; }
+  .detective-controls select { min-width:190px; }
+  .detective-mode { background:var(--bg-card); border:1px solid var(--border); border-radius:8px; color:var(--text-secondary); cursor:pointer; font-family:inherit; font-size:11px; font-weight:600; padding:8px 12px; transition:all 0.18s; }
+  .detective-mode:hover { border-color:var(--purple); color:var(--text-primary); }
+  .detective-mode.active { background:var(--purple-dim); border-color:var(--purple); color:#c4a7ff; }
+  .detective-mode-note { padding:11px 13px; border:1px solid rgba(155,109,255,0.24); background:rgba(155,109,255,0.07); border-radius:9px; color:var(--text-secondary); font-size:12px; line-height:1.55; margin-bottom:16px; }
+  .detective-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .detective-card { background:rgba(8,12,25,0.42); border:1px solid var(--border); border-radius:11px; padding:16px; min-width:0; }
+  .detective-card.wide { grid-column:1/-1; }
+  .detective-card-title { display:flex; align-items:center; gap:8px; font-size:11px; font-weight:800; letter-spacing:1px; text-transform:uppercase; color:var(--text-secondary); margin-bottom:12px; }
+  .detective-card-title .dot { width:7px; height:7px; border-radius:50%; background:var(--purple); flex-shrink:0; }
+  .detective-intro { color:var(--text-muted); font-size:11px; line-height:1.5; margin:-5px 0 12px; }
+  .share-chart-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .share-chart-title { color:var(--text-primary); font-size:12px; font-weight:700; margin-bottom:9px; }
+  .share-metric { padding:8px 0; border-top:1px solid rgba(255,255,255,0.04); }
+  .share-metric:first-of-type { border-top:0; }
+  .share-metric-label { display:flex; justify-content:space-between; gap:8px; margin-bottom:6px; font-size:11px; color:var(--text-secondary); }
+  .share-pair { display:grid; grid-template-columns:60px 1fr 78px; align-items:center; gap:7px; margin-top:4px; }
+  .share-series-label { font-size:9px; color:var(--text-muted); text-transform:uppercase; letter-spacing:.5px; }
+  .share-track { height:7px; background:rgba(255,255,255,0.06); border-radius:5px; overflow:hidden; }
+  .share-fill { height:100%; border-radius:5px; min-width:0; }
+  .share-fill.game { background:var(--purple); }
+  .share-fill.baseline { background:var(--cyan); }
+  .share-count { text-align:right; font-size:9px; color:var(--text-muted); font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .share-delta { color:var(--text-primary); font-size:10px; font-weight:700; font-variant-numeric:tabular-nums; }
+  .detective-gravity-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .detective-situation { background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.05); border-radius:8px; padding:10px; }
+  .detective-situation-name { color:var(--text-secondary); font-size:10px; line-height:1.35; min-height:27px; }
+  .detective-scores { display:flex; justify-content:space-between; gap:8px; margin:6px 0; font-size:11px; font-variant-numeric:tabular-nums; }
+  .detective-scores .game { color:#c4a7ff; font-weight:700; }
+  .detective-scores .baseline { color:var(--cyan); font-weight:700; }
+  .detective-delta { font-size:12px; font-weight:800; margin-bottom:4px; }
+  .detective-count { color:var(--text-muted); font-size:9px; line-height:1.5; }
+  .detective-rank-list { display:flex; flex-direction:column; gap:7px; }
+  .detective-rank-row { display:grid; grid-template-columns:22px 1fr auto; align-items:center; gap:8px; padding:8px 9px; background:rgba(255,255,255,0.025); border-radius:7px; }
+  .detective-rank-number { color:var(--purple); font-size:11px; font-weight:800; }
+  .detective-rank-label { color:var(--text-secondary); font-size:10px; line-height:1.35; }
+  .detective-rank-value { color:var(--text-primary); font-size:11px; font-weight:800; white-space:nowrap; font-variant-numeric:tabular-nums; text-align:right; }
+  .detective-rank-evidence { grid-column:2/-1; color:var(--text-muted); font-size:9px; margin-top:-4px; }
+  .detective-teammate-summary { color:var(--text-secondary); font-size:12px; line-height:1.6; margin-bottom:10px; }
+  .detective-teammate-list { display:flex; flex-direction:column; gap:5px; }
+  .detective-teammate-row { display:flex; justify-content:space-between; gap:12px; padding:6px 8px; background:rgba(255,255,255,0.025); border-radius:6px; font-size:10px; }
+  .detective-teammate-row .name { color:var(--text-secondary); }
+  .detective-teammate-row .value { color:var(--text-primary); font-weight:700; font-variant-numeric:tabular-nums; }
+  .detective-cards { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+  .investigation-card { background:rgba(8,12,25,0.42); border:1px solid var(--border); border-radius:10px; padding:14px; }
+  .investigation-card .insight-tag { margin-bottom:8px; }
+  .investigation-card .insight-text { font-size:11px; line-height:1.6; }
+  .detective-caveat { color:var(--text-muted); font-size:10px; line-height:1.55; margin-top:12px; }
+  .detective-empty { color:var(--text-muted); font-size:12px; line-height:1.6; padding:14px 0; }
+
+  .footer-note { text-align:center; font-size:10px; color:var(--text-muted); padding:8px 0 20px; letter-spacing:0.5px; }
+
+  @media(max-width:1100px) {
+    .main-row, .situation-row { grid-template-columns:1fr; }
+    .metrics-row { grid-template-columns:repeat(2,1fr); }
+  }
+  @media(max-width:700px) {
+    .metrics-row { grid-template-columns:1fr; }
+    .situation-court { min-height:260px; }
+    .header { flex-direction:column; gap:12px; }
+    .controls { justify-content:center; }
+    .dashboard { padding:12px; }
+    .detective-header { flex-direction:column; }
+    .detective-controls { justify-content:flex-start; width:100%; }
+    .detective-controls select { min-width:0; flex:1; }
+    .detective-grid, .share-chart-grid, .detective-cards { grid-template-columns:1fr; }
+    .detective-card.wide { grid-column:auto; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">
+    <div class="logo-icon">GQ</div>
+    <div>
+      <div class="logo-text">Gravity<span>IQ</span></div>
+      <div class="logo-sub">WNBA Scouting Analytics</div>
+    </div>
+  </div>
+  <div class="controls">
+    <div class="control-group">
+      <span class="control-label">Game</span>
+      <select id="gameSelect"></select>
+    </div>
+    <div id="matchupBadge" class="matchup-badge">
+      <span class="team-tag home" id="homeTag">MIN</span>
+      <span class="vs">vs</span>
+      <span class="team-tag away" id="awayTag">IND</span>
+    </div>
+    <div class="control-group">
+      <span class="control-label">Team Filter</span>
+      <select id="teamFilter">
+        <option value="all">Both Teams</option>
+      </select>
+    </div>
+    <div class="control-group">
+      <span class="control-label">Player</span>
+      <select id="playerSelect"></select>
+    </div>
+  </div>
+</div>
+
+<div class="dashboard">
+  <!-- Metric Cards -->
+  <div class="metrics-row">
+    <div class="metric-card purple">
+      <div class="accent-bar"></div>
+      <div class="metric-label">Game Gravity</div>
+      <div class="metric-value" id="metricGameGrav">—</div>
+      <div class="metric-sub" id="metricGameGravSub">Selected game performance</div>
+    </div>
+    <div class="metric-card cyan">
+      <div class="accent-bar"></div>
+      <div class="metric-label">Season Baseline</div>
+      <div class="metric-value" id="metricBaseline">—</div>
+      <div class="metric-sub" id="metricBaselineSub">Frame-weighted avg excl. this game</div>
+    </div>
+    <div class="metric-card orange">
+      <div class="accent-bar"></div>
+      <div class="metric-label">Gravity Gap</div>
+      <div class="metric-value" id="metricGap">—</div>
+      <div class="metric-sub" id="metricGapSub">Game vs. historical baseline</div>
+    </div>
+    <div class="metric-card green">
+      <div class="accent-bar"></div>
+      <div class="metric-label">Data Reliability</div>
+      <div class="metric-value" id="metricFrames">—</div>
+      <div class="metric-sub" id="metricFramesSub">Valid Gravity frames</div>
+    </div>
+  </div>
+
+  <!-- Main content: Leaderboard + Team Comparison -->
+  <div class="main-row">
+    <div class="panel">
+      <div class="panel-title"><div class="dot" style="background:var(--purple)"></div> Player Gravity Leaderboard</div>
+      <div class="leaderboard-controls">
+        <label>Min Frames</label>
+        <input type="number" id="minFrames" value="500" min="0" step="100">
+      </div>
+      <div id="leaderboard"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-title"><div class="dot" style="background:var(--orange)"></div> Team Comparison</div>
+      <div class="team-compare" id="teamCompare"></div>
+      <div style="margin-top:12px;font-size:10px;color:var(--text-muted);font-style:italic;">
+        Team averages are frame-weighted player means — not official team Gravity statistics.
+      </div>
+    </div>
+  </div>
+
+  <!-- SITUATION BREAKDOWN -->
+  <div class="situation-row">
+    <!-- Left: Court quadrant grid -->
+    <div class="panel">
+      <div class="panel-title"><div class="dot" style="background:var(--yellow)"></div> Situation Breakdown — <span id="sitPlayerName" style="color:var(--purple)">Player</span></div>
+      <div style="position:relative;">
+        <div class="situation-court" id="situationCourt">
+          <div class="sit-card" id="sitOBP"></div>
+          <div class="sit-card" id="sitOFBP"></div>
+          <div class="sit-card" id="sitOBI"></div>
+          <div class="sit-card" id="sitOFBI"></div>
+        </div>
+        <div class="court-center-label" id="courtCenterLabel">Court View</div>
+      </div>
+    </div>
+    <!-- Right: Comparison bars + frame distribution -->
+    <div class="panel">
+      <div class="panel-title"><div class="dot" style="background:var(--cyan)"></div> Game vs. Baseline by Situation</div>
+      <div class="legend-row">
+        <div class="legend-item"><div class="legend-swatch" style="background:var(--purple)"></div> This Game</div>
+        <div class="legend-item"><div class="legend-swatch" style="background:var(--cyan)"></div> Historical Baseline</div>
+      </div>
+      <div class="sit-compare-panel" id="sitCompareBars"></div>
+      <div class="sit-frame-dist" id="sitFrameDist"></div>
+    </div>
+  </div>
+
+  <!-- Gravity Detective -->
+  <section class="detective-panel" aria-labelledby="detectiveTitle">
+    <div class="detective-header">
+      <div class="detective-heading">
+        <div class="detective-kicker">Gravity X-Ray / Investigation</div>
+        <h2 class="detective-title" id="detectiveTitle">GRAVITY DETECTIVE — Why Is the Defense Reacting?</h2>
+        <p class="detective-subtitle">Evidence-led comparisons for the selected player. Patterns describe what the tracking data shows; they do not establish why defenses behaved that way.</p>
+      </div>
+      <div class="detective-controls">
+        <label class="control-label" for="detectivePlayerSelect">Investigate player</label>
+        <select id="detectivePlayerSelect" aria-label="Select player for Gravity Detective"></select>
+        <button type="button" id="lowGravityMode" class="detective-mode" aria-pressed="false">Why Low Gravity?</button>
+      </div>
+    </div>
+    <div id="detectiveModeNote" class="detective-mode-note" aria-live="polite"></div>
+    <div class="detective-grid">
+      <div class="detective-card">
+        <div class="detective-card-title"><span class="dot"></span>Role &amp; Court Position</div>
+        <p class="detective-intro">Frame-share comparisons use the four labeled situations as the denominator. Counts are shown; historical values are frame-pooled and exclude the selected game.</p>
+        <div id="detectiveShareCharts"></div>
+      </div>
+      <div class="detective-card">
+        <div class="detective-card-title"><span class="dot"></span>Four-Situation Gravity</div>
+        <p class="detective-intro">Each score reflects observed Gravity in that situation. A game-to-baseline gap is a difference in measured attention, not an explanation of its cause.</p>
+        <div id="detectiveSituationGrid" class="detective-gravity-grid"></div>
+      </div>
+      <div class="detective-card">
+        <div class="detective-card-title"><span class="dot"></span>Largest Observable Changes</div>
+        <div id="detectiveRankings"></div>
+      </div>
+      <div class="detective-card">
+        <div class="detective-card-title"><span class="dot"></span>Same-Game Teammates</div>
+        <div id="detectiveTeammates"></div>
+      </div>
+      <div class="detective-card wide">
+        <div class="detective-card-title"><span class="dot"></span>Investigation Cards</div>
+        <div id="detectiveInvestigationCards" class="detective-cards"></div>
+        <p class="detective-caveat">Not present in the loaded data: shooting statistics or outcomes, player handedness, lineups / who shared the floor, and defender assignments. Film, play-by-play, shot data, lineup stints, and matchup tracking would be needed to test explanations. A teammate comparison is descriptive only and cannot establish teammate causation.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Insight Panel -->
+  <div class="insight-panel">
+    <div class="panel-title"><div class="dot" style="background:var(--green)"></div> Quick Insight — <span id="insightPlayerName" style="color:var(--purple)">Player</span></div>
+    <div id="insightContent"></div>
+  </div>
+
+  <div class="footer-note">GravityIQ — Built for the WNBA Mini Data Jam 2026 &nbsp;|&nbsp; Powered by AWS Optical Tracking Data &nbsp;|&nbsp; Gravity range: −100 to +100 (0 = league avg)</div>
+</div>
+
+<script>
+const TEAMS = {
+  "1611661324":{abbr:"MIN",city:"Minnesota",name:"Lynx",full:"Minnesota Lynx"},
+  "1611661325":{abbr:"IND",city:"Indiana",name:"Fever",full:"Indiana Fever"},
+  "1611661330":{abbr:"ATL",city:"Atlanta",name:"Dream",full:"Atlanta Dream"},
+  "1611661329":{abbr:"CHI",city:"Chicago",name:"Sky",full:"Chicago Sky"},
+  "1611661323":{abbr:"CON",city:"Connecticut",name:"Sun",full:"Connecticut Sun"},
+  "1611661321":{abbr:"DAL",city:"Dallas",name:"Wings",full:"Dallas Wings"},
+  "1611661331":{abbr:"GSV",city:"Golden State",name:"Valkyries",full:"Golden State Valkyries"},
+  "1611661319":{abbr:"LVA",city:"Las Vegas",name:"Aces",full:"Las Vegas Aces"},
+  "1611661320":{abbr:"LAS",city:"Los Angeles",name:"Sparks",full:"Los Angeles Sparks"},
+  "1611661313":{abbr:"NYL",city:"New York",name:"Liberty",full:"New York Liberty"},
+  "1611661317":{abbr:"PHX",city:"Phoenix",name:"Mercury",full:"Phoenix Mercury"},
+  "1611661327":{abbr:"PDX",city:"Portland",name:"Fire",full:"Portland Fire"},
+  "1611661328":{abbr:"SEA",city:"Seattle",name:"Storm",full:"Seattle Storm"},
+  "1611661332":{abbr:"TOR",city:"Toronto",name:"Tempo",full:"Toronto Tempo"},
+  "1611661322":{abbr:"WAS",city:"Washington",name:"Mystics",full:"Washington Mystics"}
+};
+
+const PLAYERS = {
+  "1630471":{name:"Maya Caldwell",team:"1611661324"},
+  "1629483":{name:"Napheesa Collier",team:"1611661324"},
+  "1643489":{name:"Antonia Delaere",team:"1611661324"},
+  "203825":{name:"Kayla McBride",team:"1611661324"},
+  "1627675":{name:"Courtney Williams",team:"1611661324"},
+  "1630462":{name:"Olivia Miles",team:"1611661324"},
+  "203827":{name:"Natasha Howard",team:"1611661324"},
+  "1628269":{name:"Nia Brodie",team:"1611661324"},
+  "1631064":{name:"Alissa Pili",team:"1611661324"},
+  "1641657":{name:"Dorka Juhász",team:"1611661324"},
+  "1642820":{name:"Sonia Citron",team:"1611661324"},
+  "1643433":{name:"Raven Johnson",team:"1611661325"},
+  "1628909":{name:"Kelsey Mitchell",team:"1611661325"},
+  "1628899":{name:"Myisha Hines-Allen",team:"1611661325"},
+  "1629482":{name:"Sophie Cunningham",team:"1611661325"},
+  "1628881":{name:"Monique Billings",team:"1611661325"},
+  "1642286":{name:"Caitlin Clark",team:"1611661325"},
+  "1631086":{name:"Lexie Hull",team:"1611661325"},
+  "1641648":{name:"Aliyah Boston",team:"1611661325"},
+  "1642788":{name:"Temi Fagbenle",team:"1611661325"},
+  "1630112":{name:"Tyasha Harris",team:"1611661325"},
+  "1642803":{name:"Grace Berger",team:"1611661325"},
+  "1643453":{name:"Paige Bueckers",team:"1611661325"},
+  "1642815":{name:"Makayla Timpson",team:"1611661325"}
+};
+
+const GAME_DATA = [
+  {pid:"1630471",tid:"1611661324",frames:5092,avgGrav:-2.871,obpF:828,obpG:-16.205,ofbpF:3569,ofbpG:0.756,obiF:97,obiG:-15.433,ofbiF:598,ofbiG:-4.022},
+  {pid:"1629483",tid:"1611661324",frames:4595,avgGrav:0.818,obpF:370,obpG:-10.243,ofbpF:2894,ofbpG:2.094,obiF:95,obiG:11.829,ofbiF:1236,ofbiG:0.294},
+  {pid:"1643489",tid:"1611661324",frames:4503,avgGrav:-0.991,obpF:587,obpG:-3.466,ofbpF:3056,ofbpG:-1.764,obiF:187,obiG:-4.013,ofbiF:673,ofbiG:5.52},
+  {pid:"203825",tid:"1611661324",frames:4477,avgGrav:3.603,obpF:548,obpG:4.553,ofbpF:3222,ofbpG:6.308,obiF:74,obiG:-2.126,ofbiF:633,ofbiG:-10.319},
+  {pid:"1627675",tid:"1611661324",frames:4266,avgGrav:5.57,obpF:1651,obpG:-1.805,ofbpF:1984,ofbpG:12.404,obiF:216,obiG:1.371,ofbiF:415,ofbiG:4.424},
+  {pid:"1630462",tid:"1611661324",frames:4188,avgGrav:2.085,obpF:1270,obpG:-12.513,ofbpF:2455,ofbpG:9.683,obiF:144,obiG:-4.089,ofbiF:319,ofbiG:4.515},
+  {pid:"203827",tid:"1611661324",frames:4070,avgGrav:-4.252,obpF:338,obpG:-6.514,ofbpF:1447,ofbpG:2.567,obiF:402,obiG:-18.485,ofbiF:1883,ofbiG:-6.048},
+  {pid:"1628269",tid:"1611661324",frames:2632,avgGrav:-0.022,obpF:367,obpG:-1.734,ofbpF:1668,ofbpG:-0.058,obiF:6,obiG:-75.217,ofbiF:591,ofbiG:1.906},
+  {pid:"1631064",tid:"1611661324",frames:2627,avgGrav:10.253,obpF:296,obpG:7.808,ofbpF:1528,ofbpG:10.133,obiF:31,obiG:23.584,ofbiF:772,ofbiG:10.894},
+  {pid:"1641657",tid:"1611661324",frames:2592,avgGrav:7.649,obpF:220,obpG:-4.038,ofbpF:1112,ofbpG:9.781,obiF:133,obiG:5.804,ofbiF:1127,ofbiG:8.045},
+  {pid:"1642820",tid:"1611661324",frames:2240,avgGrav:-1.949,obpF:288,obpG:-42.082,ofbpF:1532,ofbpG:5.011,obiF:110,obiG:-11.425,ofbiF:310,ofbiG:4.297},
+  {pid:"1643433",tid:"1611661325",frames:4013,avgGrav:5.895,obpF:1046,obpG:3.786,ofbpF:2003,ofbpG:4.83,obiF:296,obiG:6.346,ofbiF:668,ofbiG:12.191},
+  {pid:"1628909",tid:"1611661325",frames:3938,avgGrav:5.211,obpF:777,obpG:0.429,ofbpF:2178,ofbpG:3.269,obiF:178,obiG:19.998,ofbiF:805,ofbiG:11.811},
+  {pid:"1628899",tid:"1611661325",frames:3464,avgGrav:-4.255,obpF:504,obpG:9.404,ofbpF:1861,ofbpG:-9.355,obiF:330,obiG:-14.219,ofbiF:769,ofbiG:3.41},
+  {pid:"1629482",tid:"1611661325",frames:3267,avgGrav:1.971,obpF:318,obpG:2.001,ofbpF:2419,ofbpG:1.223,obiF:38,obiG:-78.503,ofbiF:492,ofbiG:11.848},
+  {pid:"1628881",tid:"1611661325",frames:2980,avgGrav:-0.872,obpF:153,obpG:23.848,ofbpF:1205,ofbpG:-7.495,obiF:38,obiG:1.245,ofbiF:1584,ofbiG:1.728},
+  {pid:"1642286",tid:"1611661325",frames:2917,avgGrav:7.13,obpF:810,obpG:9.086,ofbpF:1640,ofbpG:4.987,obiF:176,obiG:1.503,ofbiF:291,ofbiG:17.172},
+  {pid:"1631086",tid:"1611661325",frames:2682,avgGrav:-2.4,obpF:118,obpG:-7.203,ofbpF:2345,ofbpG:-2.277,obiF:29,obiG:-23.407,ofbiF:190,ofbiG:2.271},
+  {pid:"1641648",tid:"1611661325",frames:2532,avgGrav:4.754,obpF:415,obpG:11.979,ofbpF:977,ofbpG:-1.625,obiF:234,obiG:-1.14,ofbiF:906,ofbiG:9.845},
+  {pid:"1642788",tid:"1611661325",frames:2369,avgGrav:-0.894,obpF:219,obpG:-6.742,ofbpF:1844,ofbpG:-3.942,obiF:68,obiG:56.593,ofbiF:238,ofbiG:11.671},
+  {pid:"1630112",tid:"1611661325",frames:2132,avgGrav:3.984,obpF:927,obpG:1.059,ofbpF:811,ofbpG:2.666,obiF:103,obiG:16.666,ofbiF:291,ofbiG:12.481},
+  {pid:"1642803",tid:"1611661325",frames:2031,avgGrav:2.173,obpF:36,obpG:17.931,ofbpF:1257,ofbpG:3.101,obiF:12,obiG:8.358,ofbiF:726,ofbiG:-0.316},
+  {pid:"1643453",tid:"1611661325",frames:1768,avgGrav:9.059,obpF:170,obpG:32.945,ofbpF:926,ofbpG:5.069,obiF:84,obiG:22.093,ofbiF:588,ofbiG:6.576},
+  {pid:"1642815",tid:"1611661325",frames:1492,avgGrav:-6.271,obpF:28,obpG:-10.007,ofbpF:605,ofbpG:-5.481,obiF:20,obiG:1.215,ofbiF:839,ofbiG:-6.894}
+];
+
+const DORKA_HISTORY = [
+  {gid:"1022600155",frames:3277,avgGrav:-11.195,obpF:346,obpG:-13.175,ofbpF:1751,ofbpG:-10.906,obiF:64,obiG:-46.414,ofbiF:1116,ofbiG:-9.014},
+  {gid:"1022600160",frames:3452,avgGrav:-13.972,obpF:528,obpG:-14.413,ofbpF:2204,ofbpG:-13.366,obiF:75,obiG:-45.904,ofbiF:645,ofbiG:-11.965},
+  {gid:"1022600168",frames:2378,avgGrav:-11.237,obpF:402,obpG:-21.146,ofbpF:1324,ofbpG:-12.314,obiF:23,obiG:-12.252,ofbiF:629,ofbiG:-2.599},
+  {gid:"1022600189",frames:3214,avgGrav:-8.162,obpF:319,obpG:-3.68,ofbpF:1997,ofbpG:-7.952,obiF:153,obiG:-21.176,ofbiF:745,ofbiG:-7.972},
+  {gid:"1022600196",frames:3915,avgGrav:-7.186,obpF:304,obpG:1.719,ofbpF:2338,ofbpG:-8.848,obiF:56,obiG:-29.223,ofbiF:1217,ofbiG:-5.203},
+  {gid:"1022600198",frames:2454,avgGrav:-4.274,obpF:128,obpG:-27.699,ofbpF:1324,ofbpG:-2.226,obiF:39,obiG:-36.921,ofbiF:963,ofbiG:-2.653},
+  {gid:"1022600204",frames:2343,avgGrav:-16.859,obpF:239,obpG:-39.06,ofbpF:1380,ofbpG:-20.386,obiF:15,obiG:-51.147,ofbiF:709,ofbiG:-1.784},
+  {gid:"1022600218",frames:1623,avgGrav:-13.179,obpF:126,obpG:-20.374,ofbpF:1075,ofbpG:-10.663,obiF:0,obiG:0,ofbiF:422,ofbiG:-17.44},
+  {gid:"1022600231",frames:1710,avgGrav:-6.348,obpF:199,obpG:-10.671,ofbpF:1008,ofbpG:-12.834,obiF:11,obiG:24.391,ofbiF:492,ofbiG:8.002},
+  {gid:"1022600236",frames:1155,avgGrav:-14.27,obpF:30,obpG:-30.97,ofbpF:644,ofbpG:-15.769,obiF:31,obiG:-21.042,ofbiF:450,ofbiG:-10.546},
+  {gid:"1022600241",frames:1531,avgGrav:-5.276,obpF:195,obpG:-12.606,ofbpF:653,ofbpG:-9.94,obiF:0,obiG:0,ofbiF:683,ofbiG:1.276},
+  {gid:"1022600250",frames:1342,avgGrav:1.67,obpF:77,obpG:-1.355,ofbpF:666,ofbpG:-2.631,obiF:43,obiG:13.947,ofbiF:556,ofbiG:6.291},
+  {gid:"1022600258",frames:1164,avgGrav:2.095,obpF:188,obpG:7.762,ofbpF:559,ofbpG:-3.746,obiF:0,obiG:0,ofbiF:417,ofbiG:7.369},
+  {gid:"1022600268",frames:1934,avgGrav:-2.377,obpF:55,obpG:-1.431,ofbpF:1384,ofbpG:-3.942,obiF:51,obiG:4.931,ofbiF:444,ofbiG:1.543},
+  {gid:"1022600272",frames:2832,avgGrav:-1.717,obpF:181,obpG:-11.73,ofbpF:1793,ofbpG:-3.775,obiF:10,obiG:-55.21,ofbiF:848,ofbiG:5.402},
+  {gid:"1022600282",frames:2657,avgGrav:-0.43,obpF:184,obpG:-9.908,ofbpF:1547,ofbpG:-4.732,obiF:56,obiG:14.5,ofbiF:870,ofbiG:8.264},
+  {gid:"1022600328",frames:2592,avgGrav:7.649,obpF:220,obpG:-4.038,ofbpF:1112,ofbpG:9.781,obiF:133,obiG:5.804,ofbiF:1127,ofbiG:8.045}
+];
+
+let selectedGame = "1022600328";
+let selectedPlayer = "1641657";
+let minFrameThreshold = 500;
+
+// ============ CALCULATIONS ============
+function computeBaseline(history, excludeGid) {
+  let tf=0, ws=0;
+  for (const g of history) { if (g.gid===excludeGid) continue; tf+=g.frames; ws+=g.frames*g.avgGrav; }
+  return tf>0 ? {baseline:ws/tf, frames:tf} : {baseline:null, frames:0};
+}
+
+function computeSitBaselines(history, excludeGid) {
+  const keys = [
+    {k:'obp',fk:'obpF',gk:'obpG',label:'On-Ball Perimeter'},
+    {k:'ofbp',fk:'ofbpF',gk:'ofbpG',label:'Off-Ball Perimeter'},
+    {k:'obi',fk:'obiF',gk:'obiG',label:'On-Ball Interior'},
+    {k:'ofbi',fk:'ofbiF',gk:'ofbiG',label:'Off-Ball Interior'}
+  ];
+  const r = {};
+  for (const s of keys) {
+    let tf=0,ws=0;
+    for (const g of history) { if (g.gid===excludeGid) continue; if(g[s.fk]>0){tf+=g[s.fk];ws+=g[s.fk]*g[s.gk];} }
+    r[s.k] = tf>0 ? {baseline:ws/tf,frames:tf,label:s.label} : {baseline:null,frames:0,label:s.label};
+  }
+  return r;
+}
+
+function computeHistoricalShares(history, excludeGid) {
+  const totals = {onBall:0,offBall:0,perimeter:0,interior:0,valid:0};
+  for (const g of history) {
+    if (g.gid===excludeGid) continue;
+    const onBall=g.obpF+g.obiF, offBall=g.ofbpF+g.ofbiF;
+    const perimeter=g.obpF+g.ofbpF, interior=g.obiF+g.ofbiF;
+    totals.onBall+=onBall; totals.offBall+=offBall;
+    totals.perimeter+=perimeter; totals.interior+=interior;
+    totals.valid+=onBall+offBall;
+  }
+  return totals;
+}
+
+function fmt(v,d=2) { if(v==null||isNaN(v)) return '—'; return (v>=0?'+':'')+v.toFixed(d); }
+
+function fmtCount(v) { return Number(v||0).toLocaleString(); }
+
+function getPlayerHistory() {
+  return selectedPlayer==='1641657' ? DORKA_HISTORY : null;
+}
+
+function getShareStats(row, history) {
+  const game = {
+    onBall:row.obpF+row.obiF, offBall:row.ofbpF+row.ofbiF,
+    perimeter:row.obpF+row.ofbpF, interior:row.obiF+row.ofbiF
+  };
+  const gameTotal=game.onBall+game.offBall;
+  const historic=history ? computeHistoricalShares(history,selectedGame) : null;
+  const historicTotal=historic ? historic.valid : 0;
+  return {
+    game,
+    historic,
+    gameTotal,
+    historicTotal,
+    metrics:[
+      {key:'onBall',label:'On-ball',frames:game.onBall,baseFrames:historic?.onBall,gamePct:gameTotal?100*game.onBall/gameTotal:null,basePct:historicTotal?100*historic.onBall/historicTotal:null},
+      {key:'offBall',label:'Off-ball',frames:game.offBall,baseFrames:historic?.offBall,gamePct:gameTotal?100*game.offBall/gameTotal:null,basePct:historicTotal?100*historic.offBall/historicTotal:null},
+      {key:'perimeter',label:'Perimeter',frames:game.perimeter,baseFrames:historic?.perimeter,gamePct:gameTotal?100*game.perimeter/gameTotal:null,basePct:historicTotal?100*historic.perimeter/historicTotal:null},
+      {key:'interior',label:'Interior',frames:game.interior,baseFrames:historic?.interior,gamePct:gameTotal?100*game.interior/gameTotal:null,basePct:historicTotal?100*historic.interior/historicTotal:null}
+    ]
+  };
+}
+
+// ============ RENDER: METRICS ============
+function renderMetrics() {
+  const row = GAME_DATA.find(d=>d.pid===selectedPlayer);
+  if(!row){['metricGameGrav','metricBaseline','metricGap','metricFrames'].forEach(id=>{document.getElementById(id).textContent='—';});return;}
+  const gg = row.avgGrav;
+  document.getElementById('metricGameGrav').textContent = fmt(gg);
+  document.getElementById('metricGameGravSub').textContent = PLAYERS[selectedPlayer]?.name+' in this game';
+  let bl=null, blNote='';
+  if(selectedPlayer==='1641657'){const r=computeBaseline(DORKA_HISTORY,selectedGame);bl=r.baseline;blNote='All other games (excl. selected)';}
+  else{blNote='Full history not loaded for this player';}
+  document.getElementById('metricBaseline').textContent = bl!=null?fmt(bl):'—';
+  document.getElementById('metricBaselineSub').textContent = blNote;
+  const gap = bl!=null ? gg-bl : null;
+  document.getElementById('metricGap').textContent = gap!=null?fmt(gap):'—';
+  document.getElementById('metricGapSub').textContent = gap!=null?(gap>0?'Above baseline ▲':gap<0?'Below baseline ▼':'At baseline'):'Requires baseline data';
+  document.getElementById('metricFrames').textContent = row.frames.toLocaleString();
+  document.getElementById('metricFramesSub').textContent = row.frames>=2000?'High reliability':row.frames>=1000?'Moderate reliability':'Low — interpret with caution';
+}
+
+// ============ RENDER: LEADERBOARD ============
+function renderLeaderboard() {
+  const c = document.getElementById('leaderboard');
+  const tf = document.getElementById('teamFilter').value;
+  let data = GAME_DATA.filter(d=>d.frames>=minFrameThreshold);
+  if(tf!=='all') data=data.filter(d=>d.tid===tf);
+  data.sort((a,b)=>b.avgGrav-a.avgGrav);
+  const mx = Math.max(...data.map(d=>Math.abs(d.avgGrav)),1);
+  let h='';
+  for(const d of data){
+    const p=PLAYERS[d.pid]||{name:'Unknown'};const t=TEAMS[d.tid]||{abbr:'???'};
+    const pos=d.avgGrav>=0;const pct=(Math.abs(d.avgGrav)/mx)*48;const sel=d.pid===selectedPlayer?' selected':'';
+    h+=`<div class="bar-row${sel}" onclick="selectPlayer('${d.pid}')">
+      <div class="bar-player">${p.name}</div><div class="bar-team">${t.abbr}</div>
+      <div class="bar-container"><div class="bar-zero"></div><div class="bar-fill ${pos?'positive':'negative'}" style="width:${pct}%"></div></div>
+      <div class="bar-val ${pos?'pos':'neg'}">${fmt(d.avgGrav)}</div><div class="bar-frames">${d.frames.toLocaleString()}f</div></div>`;
+  }
+  c.innerHTML = h||'<div style="color:var(--text-muted);text-align:center;padding:20px;">No players meet the frame threshold.</div>';
+}
+
+// ============ RENDER: TEAM COMPARISON ============
+function renderTeamComparison() {
+  const c = document.getElementById('teamCompare');
+  const tids = [...new Set(GAME_DATA.map(d=>d.tid))];
+  let h='';
+  for(const tid of tids){
+    const team=TEAMS[tid]||{abbr:'???',full:'Unknown'};const players=GAME_DATA.filter(d=>d.tid===tid);const qual=players.filter(d=>d.frames>=minFrameThreshold);
+    let tF=0,wS=0,obF=0,obW=0,ofbF=0,ofbW=0;
+    for(const p of qual){tF+=p.frames;wS+=p.frames*p.avgGrav;const on=p.obpF+p.obiF;const off=p.ofbpF+p.ofbiF;
+      const onG=on>0?(p.obpF*p.obpG+p.obiF*p.obiG)/on:0;const offG=off>0?(p.ofbpF*p.ofbpG+p.ofbiF*p.ofbiG)/off:0;
+      obF+=on;obW+=on*onG;ofbF+=off;ofbW+=off*offG;}
+    const ag=tF>0?wS/tF:0;const oA=obF>0?obW/obF:0;const ofA=ofbF>0?ofbW/ofbF:0;
+    const isH=tid==='1611661324';const tBg=isH?'var(--purple-dim)':'var(--orange-dim)';const tC=isH?'var(--purple)':'var(--orange)';
+    h+=`<div class="team-block"><div class="team-block-header"><div class="team-block-name">${team.full}</div><div class="team-block-tag" style="background:${tBg};color:${tC}">${team.abbr}</div></div>
+      <div class="stat-row"><span class="stat-label">Avg Player Gravity (frame-wtd)</span><span class="stat-value" style="color:${ag>=0?'var(--purple)':'var(--red)'}">${fmt(ag)}</span></div>
+      <div class="stat-row"><span class="stat-label">On-Ball Gravity</span><span class="stat-value">${fmt(oA)}</span></div>
+      <div class="stat-row"><span class="stat-label">Off-Ball Gravity</span><span class="stat-value">${fmt(ofA)}</span></div>
+      <div class="stat-row"><span class="stat-label">Total Valid Frames</span><span class="stat-value">${tF.toLocaleString()}</span></div>
+      <div class="stat-row"><span class="stat-label">Players (≥${minFrameThreshold} frames)</span><span class="stat-value">${qual.length} / ${players.length}</span></div></div>`;
+  }
+  c.innerHTML=h;
+}
+
+// ============ RENDER: SITUATION BREAKDOWN ============
+function renderSituationBreakdown() {
+  const row = GAME_DATA.find(d=>d.pid===selectedPlayer);
+  const p = PLAYERS[selectedPlayer]||{name:'Unknown'};
+  document.getElementById('sitPlayerName').textContent = p.name;
+  document.getElementById('courtCenterLabel').textContent = p.name;
+
+  if(!row){
+    document.getElementById('situationCourt').innerHTML='<div style="grid-column:1/-1;text-align:center;color:var(--text-muted);padding:40px;">No data</div>';
+    document.getElementById('sitCompareBars').innerHTML='';
+    document.getElementById('sitFrameDist').innerHTML='';
+    return;
+  }
+
+  const sits = [
+    {id:'sitOBP',key:'obp',label:'On-Ball Perimeter',shortLabel:'ON-BALL PER',grav:row.obpG,frames:row.obpF,fk:'obpF',gk:'obpG'},
+    {id:'sitOFBP',key:'ofbp',label:'Off-Ball Perimeter',shortLabel:'OFF-BALL PER',grav:row.ofbpG,frames:row.ofbpF,fk:'ofbpF',gk:'ofbpG'},
+    {id:'sitOBI',key:'obi',label:'On-Ball Interior',shortLabel:'ON-BALL INT',grav:row.obiG,frames:row.obiF,fk:'obiF',gk:'obiG'},
+    {id:'sitOFBI',key:'ofbi',label:'Off-Ball Interior',shortLabel:'OFF-BALL INT',grav:row.ofbiG,frames:row.ofbiF,fk:'ofbiF',gk:'ofbiG'}
+  ];
+
+  const totalFrames = row.frames;
+  const hasBL = selectedPlayer==='1641657';
+  const baselines = hasBL ? computeSitBaselines(DORKA_HISTORY, selectedGame) : null;
+
+  // Court quadrant cards
+  for(const s of sits){
+    const el = document.getElementById(s.id);
+    const pos = s.grav>=0;
+    const pct = totalFrames>0 ? Math.round(s.frames/totalFrames*100) : 0;
+    const bl = baselines ? baselines[s.key] : null;
+    const blVal = bl && bl.baseline!=null ? bl.baseline : null;
+    const gap = blVal!=null ? s.grav - blVal : null;
+    const gapClass = gap!=null ? (gap>2?'up':gap<-2?'down':'neutral') : 'neutral';
+    const reliability = s.frames>=500?'':'⚠ low frames';
+
+    el.innerHTML = `
+      <div class="sit-zone-label">${s.shortLabel}</div>
+      <div class="sit-grav-value ${pos?'pos':'neg'}">${fmt(s.grav,1)}</div>
+      ${blVal!=null ? `<div class="sit-baseline">Baseline: <strong>${fmt(blVal,1)}</strong></div>` : '<div class="sit-baseline">No baseline</div>'}
+      ${gap!=null ? `<div class="sit-gap ${gapClass}">${fmt(gap,1)} gap</div>` : ''}
+      <div class="sit-frames">
+        <span>${s.frames.toLocaleString()}f (${pct}%)</span>
+        <div class="frame-bar-bg"><div class="frame-bar-fill" style="width:${pct}%"></div></div>
+        ${reliability?`<span style="color:var(--orange);font-size:9px">${reliability}</span>`:''}
+      </div>`;
+  }
+
+  // Comparison bars (right panel)
+  const maxAbsGrav = Math.max(...sits.map(s=>Math.abs(s.grav)), ...(baselines ? sits.map(s=>baselines[s.key]?.baseline!=null?Math.abs(baselines[s.key].baseline):0) : [0]), 1);
+
+  let barsHtml = '';
+  for(const s of sits){
+    const bl = baselines ? baselines[s.key] : null;
+    const blVal = bl && bl.baseline!=null ? bl.baseline : null;
+    const gPct = (Math.abs(s.grav)/maxAbsGrav)*48;
+    const gLeft = s.grav>=0;
+    const bPct = blVal!=null ? (Math.abs(blVal)/maxAbsGrav)*48 : 0;
+    const bLeft = blVal!=null ? blVal>=0 : true;
+
+    barsHtml += `<div class="sit-compare-row">
+      <div class="sit-compare-header">
+        <span class="sit-compare-label">${s.label}</span>
+        <div class="sit-compare-values">
+          <span class="game-val">${fmt(s.grav,1)}</span>
+          ${blVal!=null?`<span class="base-val">${fmt(blVal,1)}</span>`:'<span style="color:var(--text-muted)">—</span>'}
+        </div>
+      </div>
+      <div class="sit-dual-bar">
+        <div class="zero-line"></div>
+        <div class="bar-game" style="${gLeft?'left:50%':'right:50%'};width:${gPct}%"></div>
+        ${blVal!=null?`<div class="bar-base" style="${bLeft?'left:50%':'right:50%'};width:${bPct}%"></div>`:''}
+      </div>
+    </div>`;
+  }
+  document.getElementById('sitCompareBars').innerHTML = barsHtml;
+
+  // Frame distribution
+  const colors = ['var(--purple)','var(--cyan)','var(--orange)','var(--green)'];
+  let distHtml = '<div class="sit-frame-dist-title">Frame Distribution</div>';
+  sits.forEach((s,i)=>{
+    const pct = totalFrames>0 ? (s.frames/totalFrames*100) : 0;
+    distHtml += `<div class="frame-dist-row">
+      <div class="frame-dist-label">${s.label}</div>
+      <div class="frame-dist-bar-bg"><div class="frame-dist-bar-fill" style="width:${pct}%;background:${colors[i]}"></div></div>
+      <div class="frame-dist-pct">${pct.toFixed(0)}%</div>
+      <div class="frame-dist-count">${s.frames.toLocaleString()}</div>
+    </div>`;
+  });
+  document.getElementById('sitFrameDist').innerHTML = distHtml;
+}
+
+// ============ RENDER: INSIGHT ============
+function renderInsight() {
+  const row = GAME_DATA.find(d=>d.pid===selectedPlayer);
+  const p = PLAYERS[selectedPlayer];
+  if(!row||!p){document.getElementById('insightContent').innerHTML='';return;}
+  document.getElementById('insightPlayerName').textContent = p.name;
+  const t = TEAMS[row.tid]||{abbr:'???'};
+  const history=getPlayerHistory();
+  let evidence=`<strong>${p.name}</strong> (${t.abbr}) recorded Game Gravity <strong>${fmt(row.avgGrav)}</strong> across <strong>${fmtCount(row.frames)}</strong> valid frames.`;
+  if(history){
+    const {baseline,frames}=computeBaseline(history,selectedGame);
+    evidence+=` The frame-weighted historical baseline excluding this game is <strong>${fmt(baseline)}</strong> (${fmtCount(frames)} frames); the game-to-baseline difference is <strong>${fmt(row.avgGrav-baseline)}</strong>.`;
+  } else {
+    evidence+=' A historical baseline is unavailable because this dashboard does not include this player’s game-by-game history.';
+  }
+  document.getElementById('insightContent').innerHTML=
+    `<div class="insight-section"><div class="insight-tag observed">Observed</div><div class="insight-text">${evidence}</div></div>
+    <div class="insight-section"><div class="insight-tag limitation">Interpretation</div><div class="insight-text">Gravity describes defensive attention in the tracking data, not overall player quality. The available data cannot identify the cause of a score or establish that a teammate caused it.</div></div>`;
+}
+
+// ============ RENDER: GRAVITY DETECTIVE ============
+function renderShareCharts(share) {
+  const container=document.getElementById('detectiveShareCharts');
+  const sections=[
+    {title:'Offensive role',keys:['onBall','offBall']},
+    {title:'Court position',keys:['perimeter','interior']}
+  ];
+  const historyAvailable=!!share.historic;
+  let html='<div class="legend-row"><div class="legend-item"><div class="legend-swatch" style="background:var(--purple)"></div> This game</div><div class="legend-item"><div class="legend-swatch" style="background:var(--cyan)"></div> Historical baseline</div></div><div class="share-chart-grid">';
+  for(const section of sections){
+    html+=`<div><div class="share-chart-title">${section.title}</div>`;
+    for(const key of section.keys){
+      const metric=share.metrics.find(m=>m.key===key);
+      const delta=historyAvailable&&metric.gamePct!=null&&metric.basePct!=null?metric.gamePct-metric.basePct:null;
+      html+=`<div class="share-metric">
+        <div class="share-metric-label"><span>${metric.label}</span><span class="share-delta">${delta==null?'Baseline unavailable':`${delta>=0?'+':''}${delta.toFixed(1)} pp`}</span></div>
+        <div class="share-pair"><span class="share-series-label">Game</span><div class="share-track"><div class="share-fill game" style="width:${metric.gamePct||0}%"></div></div><span class="share-count">${metric.gamePct==null?'—':metric.gamePct.toFixed(1)+'% · '+fmtCount(metric.frames)+'f'}</span></div>
+        <div class="share-pair"><span class="share-series-label">Baseline</span><div class="share-track">${historyAvailable&&metric.basePct!=null?`<div class="share-fill baseline" style="width:${metric.basePct}%"></div>`:''}</div><span class="share-count">${historyAvailable&&metric.basePct!=null?`${metric.basePct.toFixed(1)}% · ${fmtCount(metric.baseFrames)}f`:'Unavailable'}</span></div>
+      </div>`;
+    }
+    html+='</div>';
+  }
+  html+='</div>';
+  html+=`<p class="detective-caveat">Game shares use ${fmtCount(share.gameTotal)} situation-labeled frames. Historical shares: ${historyAvailable?`${fmtCount(share.historicTotal)} pooled frames, excluding this game`:'not available for this player'}.</p>`;
+  container.innerHTML=html;
+}
+
+function renderDetectiveSituations(row, history) {
+  const situations=[
+    {key:'obp',label:'On-ball perimeter',frames:row.obpF,gravity:row.obpG},
+    {key:'ofbp',label:'Off-ball perimeter',frames:row.ofbpF,gravity:row.ofbpG},
+    {key:'obi',label:'On-ball interior',frames:row.obiF,gravity:row.obiG},
+    {key:'ofbi',label:'Off-ball interior',frames:row.ofbiF,gravity:row.ofbiG}
+  ];
+  const baselines=history?computeSitBaselines(history,selectedGame):null;
+  document.getElementById('detectiveSituationGrid').innerHTML=situations.map(s=>{
+    const baseline=baselines?.[s.key];
+    const gap=baseline?.baseline!=null?s.gravity-baseline.baseline:null;
+    const attention=gap==null?'Historical comparison unavailable':gap>0?'More attention than baseline':gap<0?'Less attention than baseline':'At historical baseline';
+    return `<div class="detective-situation">
+      <div class="detective-situation-name">${s.label}</div>
+      <div class="detective-scores"><span class="game">Game ${fmt(s.gravity,1)}</span><span class="baseline">${baseline?.baseline!=null?`Base ${fmt(baseline.baseline,1)}`:'Base —'}</span></div>
+      <div class="detective-delta" style="color:${gap==null?'var(--text-muted)':gap>=0?'var(--green)':'var(--orange)'}">${gap==null?attention:`${fmt(gap,1)} · ${attention}`}</div>
+      <div class="detective-count">${fmtCount(s.frames)} game frames${baseline?.baseline!=null?` · ${fmtCount(baseline.frames)} historical frames`:''}</div>
+    </div>`;
+  }).join('');
+  return situations.map(s=>{
+    const baseline=baselines?.[s.key];
+    return baseline?.baseline!=null?{label:s.label,delta:s.gravity-baseline.baseline,gameFrames:s.frames,baselineFrames:baseline.frames}:null;
+  }).filter(Boolean);
+}
+
+function renderDetectiveRankings(gravityChanges, share) {
+  const gravitySorted=[...gravityChanges].sort((a,b)=>Math.abs(b.delta)-Math.abs(a.delta));
+  const shareSorted=share.metrics.filter(m=>m.gamePct!=null&&m.basePct!=null)
+    .map(m=>({label:m.label,delta:m.gamePct-m.basePct,gameFrames:m.frames,baselineFrames:m.baseFrames}))
+    .sort((a,b)=>Math.abs(b.delta)-Math.abs(a.delta));
+  const rows=(items,unit)=>items.length?`<div class="detective-rank-list">${items.map((item,index)=>`
+    <div class="detective-rank-row">
+      <span class="detective-rank-number">${index+1}</span>
+      <span class="detective-rank-label">${item.label}</span>
+      <span class="detective-rank-value">${unit==='Gravity points'?fmt(item.delta,1):`${item.delta>=0?'+':''}${item.delta.toFixed(1)} pp`}</span>
+      <span class="detective-rank-evidence">${fmtCount(item.gameFrames)} game frames · ${fmtCount(item.baselineFrames)} historical frames</span>
+    </div>`).join('')}</div>`:'<p class="detective-empty">Historical comparisons are unavailable for this player.</p>';
+  document.getElementById('detectiveRankings').innerHTML=
+    `<div class="share-chart-title">Situational Gravity gaps · ranked by absolute Gravity points</div>${rows(gravitySorted,'Gravity points')}
+    <div class="share-chart-title" style="margin-top:15px">Role / position share shifts · ranked by absolute percentage points</div>${rows(shareSorted,'percentage points')}
+    <p class="detective-caveat">Ranks are separate by unit; Gravity points and percentage points are not directly comparable.</p>`;
+}
+
+function renderDetectiveTeammates(row, player) {
+  const peers=GAME_DATA.filter(d=>d.tid===row.tid&&d.pid!==selectedPlayer)
+    .sort((a,b)=>b.avgGrav-a.avgGrav);
+  if(!peers.length){
+    document.getElementById('detectiveTeammates').innerHTML='<p class="detective-empty">No teammate rows are available in this game.</p>';
+    return;
+  }
+  const frameTotal=peers.reduce((sum,d)=>sum+d.frames,0);
+  const weightedGravity=peers.reduce((sum,d)=>sum+d.avgGrav*d.frames,0)/frameTotal;
+  const gap=row.avgGrav-weightedGravity;
+  const gapText=gap>0?'above':gap<0?'below':'level with';
+  const team=TEAMS[row.tid]?.abbr||'team';
+  const list=peers.map(d=>`<div class="detective-teammate-row"><span class="name">${PLAYERS[d.pid]?.name||'Unknown'} · ${fmtCount(d.frames)}f</span><span class="value">${fmt(d.avgGrav)}</span></div>`).join('');
+  document.getElementById('detectiveTeammates').innerHTML=
+    `<p class="detective-teammate-summary"><strong>${player.name}</strong> posted <strong>${fmt(row.avgGrav)}</strong> (${fmtCount(row.frames)} frames), ${gapText} the other ${team} players’ frame-weighted mean of <strong>${fmt(weightedGravity)}</strong> (${fmtCount(frameTotal)} teammate frames). This is a same-game association only; it cannot establish teammate causation.</p>
+    <div class="detective-teammate-list">${list}</div>`;
+}
+
+function renderInvestigationCards(row, player, history, gravityChanges, share) {
+  const base=history?computeBaseline(history,selectedGame):null;
+  const overallGap=base?.baseline!=null?row.avgGrav-base.baseline:null;
+  const largestGravity=[...gravityChanges].sort((a,b)=>Math.abs(b.delta)-Math.abs(a.delta))[0];
+  const shareChanges=share.metrics.filter(m=>m.gamePct!=null&&m.basePct!=null)
+    .map(m=>({...m,delta:m.gamePct-m.basePct})).sort((a,b)=>Math.abs(b.delta)-Math.abs(a.delta));
+  const largestShare=shareChanges[0];
+  const observedParts=[`Game Gravity is <strong>${fmt(row.avgGrav)}</strong> across <strong>${fmtCount(row.frames)}</strong> frames.`];
+  if(overallGap!=null) observedParts.push(`That is <strong>${fmt(overallGap)}</strong> versus the historical baseline of <strong>${fmt(base.baseline)}</strong> (${fmtCount(base.frames)} historical frames).`);
+  else observedParts.push('A personal historical baseline is unavailable in the loaded data.');
+  if(largestGravity) observedParts.push(`The largest measured situation gap is <strong>${largestGravity.label}</strong> at <strong>${fmt(largestGravity.delta,1)}</strong> Gravity points (${fmtCount(largestGravity.gameFrames)} game / ${fmtCount(largestGravity.baselineFrames)} historical frames).`);
+  if(largestShare) observedParts.push(`The largest role / position share shift is <strong>${largestShare.label}</strong> at <strong>${largestShare.delta>=0?'+':''}${largestShare.delta.toFixed(1)} percentage points</strong> (${fmtCount(largestShare.frames)} game / ${fmtCount(largestShare.baseFrames)} historical frames).`);
+
+  let possible;
+  if(document.getElementById('lowGravityMode').classList.contains('active')){
+    if(row.avgGrav<0){
+      possible=`A below-zero Gravity score indicates less measured defensive attention than the league-average reference; it does not indicate poor performance. A testable possibility is that role, spacing, matchup, or the threats elsewhere on the floor influenced the observed attention. These data cannot distinguish among those explanations.`;
+    } else {
+      possible=`This game's score is not below zero (<strong>${fmt(row.avgGrav)}</strong>), so it does not meet this dashboard’s descriptive “low” screen. To explain any lower-than-usual pattern, test role, spacing, matchup, or floor context with play-level evidence; none is established by these aggregates.`;
+    }
+    if(overallGap!=null) possible+=` Relative to personal history, the game was <strong>${fmt(overallGap)}</strong> (${fmtCount(base.frames)} baseline frames).`;
+  } else if(largestShare){
+    possible=`The largest observed distribution shift is ${largestShare.label} (<strong>${largestShare.delta>=0?'+':''}${largestShare.delta.toFixed(1)} percentage points</strong>). A change in role or court usage is one possibility to investigate, but frame shares do not reveal the reason for the shift. Compare play-by-play and lineup stints before attributing it.`;
+  } else if(largestGravity){
+    possible=`The largest situation difference is ${largestGravity.label} (<strong>${fmt(largestGravity.delta,1)} Gravity points</strong>). A matchup or role-context change could be investigated, but aggregate Gravity alone cannot identify which (if either) explains the difference.`;
+  } else {
+    possible='Check role, spacing, shooting outcomes, lineup context, and defender assignment as competing explanations. None can be tested with the currently loaded player-game aggregates.';
+  }
+  const missing=`The loaded dataset has no shooting volume / results, handedness, lineup stints, or defender-assignment records. Those are missing evidence, not inferred player traits. Obtain shot/play-by-play data, lineup combinations, and matchup tracking or film before testing a cause.`;
+  document.getElementById('detectiveInvestigationCards').innerHTML=
+    `<article class="investigation-card"><div class="insight-tag observed">Observed</div><div class="insight-text">${observedParts.join(' ')}</div></article>
+    <article class="investigation-card"><div class="insight-tag hypothesis">Possible Explanation</div><div class="insight-text">${possible}</div></article>
+    <article class="investigation-card"><div class="insight-tag limitation">Missing Evidence</div><div class="insight-text">${missing}</div></article>`;
+}
+
+function renderDetective() {
+  const row=GAME_DATA.find(d=>d.pid===selectedPlayer);
+  const player=PLAYERS[selectedPlayer];
+  const modeNote=document.getElementById('detectiveModeNote');
+  const lowMode=document.getElementById('lowGravityMode').classList.contains('active');
+  modeNote.innerHTML=lowMode
+    ?'<strong>Why Low Gravity? mode:</strong> screens for below-zero Gravity and compares it with personal history when available. Below zero means less measured attention than the league-average reference, not poor play or a negative value judgment.'
+    :'<strong>Evidence rule:</strong> game-to-history changes are shown only where historical records exist. Comparisons describe associations, not defensive intent or cause.';
+  if(!row||!player){
+    const message='<p class="detective-empty">No player data is available for this selection.</p>';
+    ['detectiveShareCharts','detectiveSituationGrid','detectiveRankings','detectiveTeammates','detectiveInvestigationCards'].forEach(id=>document.getElementById(id).innerHTML=message);
+    return;
+  }
+  const history=getPlayerHistory();
+  const share=getShareStats(row,history);
+  renderShareCharts(share);
+  const gravityChanges=renderDetectiveSituations(row,history);
+  renderDetectiveRankings(gravityChanges,share);
+  renderDetectiveTeammates(row,player);
+  renderInvestigationCards(row,player,history,gravityChanges,share);
+}
+
+// ============ CONTROLS ============
+function populateControls() {
+  const gameSelect=document.getElementById('gameSelect');
+  gameSelect.innerHTML=`<option value="${selectedGame}">${selectedGame} — MIN vs IND</option>`;
+  const tf=document.getElementById('teamFilter');
+  tf.innerHTML='<option value="all">Both Teams</option>';
+  for(const tid of [...new Set(GAME_DATA.map(d=>d.tid))]){
+    const t=TEAMS[tid];
+    tf.innerHTML+=`<option value="${tid}">${t?t.full:'Unknown team'}</option>`;
+  }
+  const options=GAME_DATA.map(d=>`<option value="${d.pid}">${PLAYERS[d.pid]?.name||'Unknown'}</option>`).join('');
+  document.getElementById('playerSelect').innerHTML=options;
+  document.getElementById('detectivePlayerSelect').innerHTML=options;
+  document.getElementById('playerSelect').value=selectedPlayer;
+  document.getElementById('detectivePlayerSelect').value=selectedPlayer;
+}
+
+function renderDashboard() {
+  renderMetrics();
+  renderLeaderboard();
+  renderTeamComparison();
+  renderSituationBreakdown();
+  renderInsight();
+  renderDetective();
+}
+
+function selectPlayer(pid) {
+  if(!GAME_DATA.some(d=>d.pid===pid)) return;
+  selectedPlayer=pid;
+  document.getElementById('playerSelect').value=pid;
+  document.getElementById('detectivePlayerSelect').value=pid;
+  renderDashboard();
+}
+
+document.getElementById('playerSelect').addEventListener('change',event=>selectPlayer(event.target.value));
+document.getElementById('detectivePlayerSelect').addEventListener('change',event=>selectPlayer(event.target.value));
+document.getElementById('teamFilter').addEventListener('change',()=>{
+  renderLeaderboard();
+  renderTeamComparison();
+});
+document.getElementById('minFrames').addEventListener('input',event=>{
+  minFrameThreshold=Math.max(0,Number(event.target.value)||0);
+  renderLeaderboard();
+  renderTeamComparison();
+});
+document.getElementById('gameSelect').addEventListener('change',event=>{
+  selectedGame=event.target.value;
+  renderDashboard();
+});
+document.getElementById('lowGravityMode').addEventListener('click',event=>{
+  const button=event.currentTarget;
+  const active=button.classList.toggle('active');
+  button.setAttribute('aria-pressed',String(active));
+  renderDetective();
+});
+
+populateControls();
+renderDashboard();
+</script>
+</body>
+</html>

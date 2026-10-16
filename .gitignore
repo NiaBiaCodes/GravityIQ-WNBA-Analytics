@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+.DS_Store
+.env
+.venv/
+venv/
+.idea/
+.vscode/
+# Event-supplied source datasets are excluded pending permission.
+*.csv
+*.pdf

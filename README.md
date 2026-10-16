@@ -29,8 +29,6 @@ The original ZIP included WNBA Mini Data Jam data tables and an event data dicti
 
 This is an independent student hackathon project, not an official WNBA analytics product and not affiliated with or endorsed by the WNBA, AWS, or Girls Who Code.
 
-## Team contributions
-Team collaboration was part of the Data Jam. Add teammate names and a breakdown of individual contributions before publishing to a public portfolio.
 
 ## Future improvements
 - Separate data preprocessing from frontend views.
